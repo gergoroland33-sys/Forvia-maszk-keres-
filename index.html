@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Maszk Kereső 2026</title>
+<title>Maszk & Fakk Kereső 2026</title>
 <style>
 :root {
 --primary: #3b82f6;
---secondary: #1e293b;
 --accent: #f59e0b;
 --bg: #0f172a;
 --card: #1e293b;
@@ -38,8 +37,6 @@ box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 border: 1px solid #334155;
 }
 
-label { display: block; font-size: 0.9rem; color: #94a3b8; margin-bottom: 10px; }
-
 input {
 width: 100%;
 padding: 15px;
@@ -51,15 +48,13 @@ font-size: 1.5rem;
 font-weight: bold;
 text-align: center;
 box-sizing: border-box;
-text-transform: uppercase; /* Vizuálisan nagybetűsít gépeléskor */
+text-transform: uppercase;
 }
-
-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
 
 .card-result {
 margin-top: 25px;
 background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-padding: 30px;
+padding: 25px;
 border-radius: 24px;
 border-left: 8px solid var(--accent);
 display: none;
@@ -69,10 +64,13 @@ text-align: center;
 
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-.cabinet-label { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-.cabinet-num { font-size: 4.5rem; font-weight: 900; color: var(--accent); margin: 5px 0; }
+.label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
+.value-big { font-size: 3.5rem; font-weight: 900; color: var(--accent); margin: 0; line-height: 1; }
+.value-sub { font-size: 1.8rem; font-weight: 700; color: white; margin-bottom: 10px; }
 
-.mask-id { font-size: 1.2rem; background: rgba(59, 130, 246, 0.2); color: var(--primary); padding: 5px 15px; border-radius: 10px; display: inline-block; margin-top: 10px; }
+.mask-badge { font-size: 1rem; background: rgba(59, 130, 246, 0.2); color: var(--primary); padding: 5px 15px; border-radius: 10px; display: inline-block; margin-top: 15px; }
+
+.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; border-top: 1px solid #334155; padding-top: 20px; }
 
 .no-result { text-align: center; color: #ef4444; margin-top: 20px; display: none; font-weight: bold; }
 </style>
@@ -82,60 +80,71 @@ text-align: center;
 <div class="container">
 <div class="header">
 <h1>Maszk Finder 2026</h1>
-<p style="font-size: 0.8rem; color: #64748b;">Keresés szekrény és fakk alapján</p>
 </div>
 
 <div class="search-box">
-<label>Maszk azonosító (pl. M1017):</label>
-<input type="text" id="maskSearch" placeholder="ÍRD BE IDE..." oninput="kereses()">
+<input type="text" id="maskSearch" placeholder="MASZK SZÁMA..." oninput="kereses()">
 </div>
 
 <div id="resultCard" class="card-result">
-<div class="cabinet-label">Szekrény / Helyszín</div>
-<div class="cabinet-num" id="outCabinet">-</div>
-<div class="mask-id" id="outMask">-</div>
+<div class="label">Szekrény</div>
+<div class="value-big" id="outCabinet">-</div>
+
+<div class="details-grid">
+<div>
+<div class="label">Fakk száma</div>
+<div class="value-sub" id="outFakk">-</div>
+</div>
+<div>
+<div class="label">Azonosító</div>
+<div class="mask-badge" id="outMask">-</div>
+</div>
+</div>
 </div>
 
-<div id="noResult" class="no-result">Nincs találat erre a maszkszámra.</div>
+<div id="noResult" class="no-result">Nincs találat.</div>
 </div>
 
 <script>
 let maskData = [];
 
-// CSV betöltése (Figyelj a pontos fájlnévre a GitHubon!)
+// Fájl betöltése
 fetch('Maszk 2026.csv')
 .then(response => response.text())
 .then(data => {
 maskData = data.split('\n').filter(row => row.trim() !== '');
-console.log("Adatok sikeresen betöltve.");
-})
-.catch(err => console.error("Hiba a CSV betöltésekor:", err));
+});
 
 function kereses() {
 const query = document.getElementById('maskSearch').value.trim().toUpperCase();
 const resCard = document.getElementById('resultCard');
 const noRes = document.getElementById('noResult');
 
-if (query.length < 2) { // Csak akkor keressen, ha már legalább 2 karaktert beírtál
+if (query.length < 2) {
 resCard.style.display = 'none';
 noRes.style.display = 'none';
 return;
 }
 
 const rows = maskData;
-if (rows.length === 0) return;
-
 const cabinetHeaders = rows[0].split(';');
 let found = false;
 
-// Keresés a sorokban
 for (let i = 1; i < rows.length; i++) {
 const cells = rows[i].split(';');
 for (let j = 0; j < cells.length; j++) {
-// Összehasonlítás (szóközök nélkül, nagybetűsen)
 if (cells[j] && cells[j].trim().toUpperCase() === query) {
-document.getElementById('outCabinet').innerText = cabinetHeaders[j].trim();
-document.getElementById('outMask').innerText = "AZONOSÍTÓ: " + query;
+// Szekrény meghatározása: A 0-1 oszlop az 1. szekrény, 2-3 a 2. stb.
+const cabinetIdx = Math.floor(j / 2);
+const cabinetName = cabinetHeaders[cabinetIdx * 2] || (cabinetIdx + 1);
+
+// Fakk meghatározása: A maszk melletti bal oldali cella (j-1)
+const fakkNum = cells[j-1] ? cells[j-1].trim() : "?";
+
+document.getElementById('outCabinet').innerText = cabinetName;
+document.getElementById('outFakk').innerText = fakkNum + ".";
+document.getElementById('outMask').innerText = query;
+
 resCard.style.display = 'block';
 noRes.style.display = 'none';
 found = true;
@@ -151,6 +160,5 @@ noRes.style.display = 'block';
 }
 }
 </script>
-
 </body>
 </html>
